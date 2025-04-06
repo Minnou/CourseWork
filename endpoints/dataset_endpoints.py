@@ -5,7 +5,7 @@ from datetime import datetime
 from models.dataset_models import Dataset
 from models.user_models import User
 from db.db import session
-from repos.get_valute import create_dataset, valutes
+from repos.dataset_repository import create_dataset, valutes, read_dataset_preview
 from auth.auth import AuthHandler
 import os
 from typing import List
@@ -14,13 +14,9 @@ dataset_router = APIRouter(prefix="/datasets", tags=["Datasets"])
 auth_handler = AuthHandler()
 
 @dataset_router.post("/create")
-async def create_dataset_endpoint(
-    valute: str,
-    days: int,
-    current_user: User = Depends(auth_handler.get_current_user)
-):
+async def create_dataset_endpoint(valute: str, days: int, user: User = Depends(auth_handler.get_current_user)):
     if valute.upper() not in valutes:
-        raise HTTPException(status_code=400, detail="Недопустимый код валюты")
+        raise HTTPException(status_code=400, detail="Нcurrent_userедопустимый код валюты")
 
     try:
         file_path = create_dataset(valute.upper(), days)
@@ -29,7 +25,7 @@ async def create_dataset_endpoint(
 
     dataset = Dataset(
         name=f"{valute.upper()}_{days}_days",
-        owner_id=current_user.id,
+        owner_id=user.id,
         created_at=datetime.utcnow(),
         file_path=file_path
     )
@@ -41,29 +37,36 @@ async def create_dataset_endpoint(
 
 # Получение одного датасета по ID
 @dataset_router.get("/datasets/{dataset_id}", response_model=Dataset)
-def get_dataset(dataset_id: int):
+async def get_dataset(dataset_id: int, user: User = Depends(auth_handler.get_current_user)):
     dataset = session.get(Dataset, dataset_id)
     if not dataset:
         raise HTTPException(status_code=404, detail="Dataset not found")
+    
+    if (dataset.owner_id != user.id):
+        raise HTTPException(status_code=404, detail="Dataset not found")
+    
     return dataset
 
 # Получение всех датасетов пользователя
-@dataset_router.get("/datasets/user/{user_id}", response_model=List[Dataset])
-def get_user_datasets(user_id: int):
-    statement = select(Dataset).where(Dataset.owner_id == user_id)
+@dataset_router.get("/datasets/user/", response_model=List[Dataset])
+async def get_user_datasets(user: User = Depends(auth_handler.get_current_user)):
+    statement = select(Dataset).where(Dataset.owner_id == user.id)
     datasets = session.exec(statement).all()
     return datasets
 
 # Удаление датасета
 @dataset_router.delete("/datasets/{dataset_id}")
-def delete_dataset(dataset_id: int):
+async def delete_dataset(dataset_id: int, user: User = Depends(auth_handler.get_current_user)):
     dataset = session.get(Dataset, dataset_id)
     if not dataset:
         raise HTTPException(status_code=404, detail="Dataset not found")
 
+    if (dataset.owner_id != user.id):
+        raise HTTPException(status_code=404, detail="Dataset not found")
+
     # Удаление файла с диска
-    if os.path.exists(dataset.data_file_path):
-        os.remove(dataset.data_file_path)
+    if os.path.exists(dataset.file_path):
+        os.remove(dataset.file_path)
 
     session.delete(dataset)
     session.commit()
@@ -71,13 +74,30 @@ def delete_dataset(dataset_id: int):
 
 #скачивание датасета
 @dataset_router.get("/datasets/{dataset_id}/download")
-def download_dataset(dataset_id: int):
+async def download_dataset(dataset_id: int, user: User = Depends(auth_handler.get_current_user)):
     dataset = session.get(Dataset, dataset_id)
     if not dataset:
         raise HTTPException(status_code=404, detail="Dataset not found")
     
-    # Проверяем, существует ли файл
-    if not os.path.exists(dataset.data_file_path):
+    if (dataset.owner_id != user.id):
+        raise HTTPException(status_code=404, detail="Dataset not found")
+
+    if not os.path.exists(dataset.file_path):
         raise HTTPException(status_code=404, detail="File not found")
     
-    return FileResponse(dataset.data_file_path, media_type="application/octet-stream", filename=os.path.basename(dataset.data_file_path))
+    return FileResponse(dataset.file_path, media_type="application/octet-stream", filename=os.path.basename(dataset.file_path))
+
+#Получение столбцов и строк датасета
+@dataset_router.get("/datasets/{dataset_id}/data")
+async def get_dataset_data(dataset_id: int, user: User = Depends(auth_handler.get_current_user)):
+    dataset = session.exec(select(Dataset).where(Dataset.id == dataset_id)).first()
+    if not dataset:
+        raise HTTPException(status_code=404, detail="Dataset not found")
+
+    if (dataset.owner_id != user.id):
+        raise HTTPException(status_code=404, detail="Dataset not found")
+
+    if not os.path.exists(dataset.file_path):
+        raise HTTPException(status_code=404, detail="Dataset file not found")
+
+    return read_dataset_preview(dataset.file_path)
