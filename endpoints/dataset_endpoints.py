@@ -5,7 +5,7 @@ from datetime import datetime
 from models.dataset_models import Dataset
 from models.user_models import User
 from db.db import session
-from repos.dataset_repository import create_dataset, valutes, read_dataset_preview
+from repos.dataset_repository import create_dataset, valutes, read_dataset
 from auth.auth import AuthHandler
 import os
 from typing import List
@@ -34,8 +34,6 @@ async def create_dataset_endpoint(valute: str, days: int, user: User = Depends(a
     session.refresh(dataset)
     return dataset
 
-
-# Получение одного датасета по ID
 @dataset_router.get("/datasets/{dataset_id}", response_model=Dataset)
 async def get_dataset(dataset_id: int, user: User = Depends(auth_handler.get_current_user)):
     dataset = session.get(Dataset, dataset_id)
@@ -47,14 +45,12 @@ async def get_dataset(dataset_id: int, user: User = Depends(auth_handler.get_cur
     
     return dataset
 
-# Получение всех датасетов пользователя
 @dataset_router.get("/datasets/user/", response_model=List[Dataset])
 async def get_user_datasets(user: User = Depends(auth_handler.get_current_user)):
     statement = select(Dataset).where(Dataset.owner_id == user.id)
     datasets = session.exec(statement).all()
     return datasets
 
-# Удаление датасета
 @dataset_router.delete("/datasets/{dataset_id}")
 async def delete_dataset(dataset_id: int, user: User = Depends(auth_handler.get_current_user)):
     dataset = session.get(Dataset, dataset_id)
@@ -72,7 +68,6 @@ async def delete_dataset(dataset_id: int, user: User = Depends(auth_handler.get_
     session.commit()
     return {"message": "Dataset deleted successfully"}
 
-#скачивание датасета
 @dataset_router.get("/datasets/{dataset_id}/download")
 async def download_dataset(dataset_id: int, user: User = Depends(auth_handler.get_current_user)):
     dataset = session.get(Dataset, dataset_id)
@@ -87,7 +82,6 @@ async def download_dataset(dataset_id: int, user: User = Depends(auth_handler.ge
     
     return FileResponse(dataset.file_path, media_type="application/octet-stream", filename=os.path.basename(dataset.file_path))
 
-#Получение столбцов и строк датасета
 @dataset_router.get("/datasets/{dataset_id}/data")
 async def get_dataset_data(dataset_id: int, user: User = Depends(auth_handler.get_current_user)):
     dataset = session.exec(select(Dataset).where(Dataset.id == dataset_id)).first()
@@ -100,4 +94,4 @@ async def get_dataset_data(dataset_id: int, user: User = Depends(auth_handler.ge
     if not os.path.exists(dataset.file_path):
         raise HTTPException(status_code=404, detail="Dataset file not found")
 
-    return read_dataset_preview(dataset.file_path)
+    return read_dataset(dataset.file_path)

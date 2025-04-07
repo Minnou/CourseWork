@@ -62,7 +62,7 @@ def create_dataset(valute, days, max_retries=3, output_dir: str = "./user_data/d
     return file_path
 
 
-def read_dataset_preview(file_path: str) -> dict:
+def read_dataset(file_path: str) -> dict:
     df = pd.read_csv(file_path)
     return {
         "columns": df.columns.tolist(),

@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import FileResponse
 from sqlmodel import Session, select
 from datetime import datetime
 from models.dataset_models import Dataset
@@ -95,3 +96,31 @@ async def train_with_params_svr(dataset_id: int, kernel: str = None, C: float = 
     session.refresh(ml_model)
 
     return {"message": "Model trained and saved", "model_id": ml_model.id}
+
+
+@ml_router.delete("/delete-ml-model/{model_id}")
+def delete_ml_model(model_id: int, user: User = Depends(auth_handler.get_current_user)):
+    model = session.exec(select(MLModel).where(MLModel.id == model_id)).first()
+    if not model or model.owner_id != user.id:
+        raise HTTPException(status_code=404, detail="Model not found")
+
+    if os.path.exists(model.model_path):
+        os.remove(model.model_path)
+
+    session.delete(model)
+    session.commit()
+    return {"message": "ML model deleted successfully"}
+
+@ml_router.get("models")
+def get_user_models(user: User = Depends(auth_handler.get_current_user)):
+    models = session.exec(select(MLModel).where(MLModel.owner_id == user.id)).all()
+    return models
+
+@ml_router.get("/download-model/{model_id}")
+def download_model(model_id: int, user: User = Depends(auth_handler.get_current_user)):
+    model = session.exec(select(MLModel).where(MLModel.id == model_id)).first()
+    
+    if not model or model.owner_id != user.id:
+        raise HTTPException(status_code=404, detail="Model not found")
+    
+    return FileResponse(model.model_path, filename=os.path.basename(model.model_path), media_type="application/octet-stream")
