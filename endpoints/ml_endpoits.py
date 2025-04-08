@@ -1,7 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import FileResponse
-from sqlmodel import Session, select
-from datetime import datetime
+from sqlmodel import select
 from models.dataset_models import Dataset
 from models.ml_models import MLModel
 from models.user_models import User
