@@ -4,8 +4,10 @@ from sqlalchemy import engine_from_config
 from sqlalchemy import pool
 from sqlmodel import SQLModel
 
-from models.book_models import *
+from models.dataset_models import *
 from models.user_models import *
+from models.ml_models import *
+from models.prediction_models import *
 
 from alembic import context
 
