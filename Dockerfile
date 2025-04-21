@@ -6,7 +6,9 @@ COPY . .
 
 RUN pip install --no-cache-dir -r requirements.txt
 
-RUN alembic upgrade head
+RUN touch secret.py
+RUN echo "db_path = '/database.db'" >> secret.py
+RUN python create_db.py
 RUN chmod 777 /database.db
 
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8081"]

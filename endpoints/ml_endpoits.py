@@ -97,7 +97,7 @@ async def train_with_params_svr(dataset_id: int, kernel: str = None, C: float = 
     return {"message": "Model trained and saved", "model_id": ml_model.id}
 
 
-@ml_router.delete("/delete-ml-model/{model_id}")
+@ml_router.delete("/delete/{model_id}")
 def delete_ml_model(model_id: int, user: User = Depends(auth_handler.get_current_user)):
     model = session.exec(select(MLModel).where(MLModel.id == model_id)).first()
     if not model or model.owner_id != user.id:
@@ -110,12 +110,12 @@ def delete_ml_model(model_id: int, user: User = Depends(auth_handler.get_current
     session.commit()
     return {"message": "ML model deleted successfully"}
 
-@ml_router.get("models")
+@ml_router.get("/user")
 def get_user_models(user: User = Depends(auth_handler.get_current_user)):
     models = session.exec(select(MLModel).where(MLModel.owner_id == user.id)).all()
     return models
 
-@ml_router.get("/download-model/{model_id}")
+@ml_router.get("/download/{model_id}")
 def download_model(model_id: int, user: User = Depends(auth_handler.get_current_user)):
     model = session.exec(select(MLModel).where(MLModel.id == model_id)).first()
     

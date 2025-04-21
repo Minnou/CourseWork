@@ -48,7 +48,7 @@ def find_best_arima_params(file_path: str):
 
     smodel = auto_arima(train["value"],
                         start_p=0, start_q=0, max_p=3, max_q=3,
-                        seasonal=False,  # <--- вот это
+                        seasonal=False,  
                         trace=False,
                         error_action='ignore', suppress_warnings=True,
                         stepwise=True)

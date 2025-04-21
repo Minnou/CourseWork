@@ -48,3 +48,10 @@ def predict(model_path: str, dataset_path: str, days: int) -> str:
     output_path = f"./user_data/predictions/prediction_{os.path.basename(model_path[:-4])}_{int(time.time())}.csv"
     result.to_csv(output_path, sep=";", index=False)
     return output_path
+
+def read_prediction(file_path: str) -> dict:
+    df = pd.read_csv(file_path)
+    return {
+        "columns": df.columns.tolist(),
+        "rows": df.to_dict(orient="records")
+    }

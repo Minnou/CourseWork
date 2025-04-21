@@ -34,7 +34,7 @@ async def create_dataset_endpoint(valute: str, days: int, user: User = Depends(a
     session.refresh(dataset)
     return dataset
 
-@dataset_router.get("/datasets/{dataset_id}", response_model=Dataset)
+@dataset_router.get("/{dataset_id}")
 async def get_dataset(dataset_id: int, user: User = Depends(auth_handler.get_current_user)):
     dataset = session.get(Dataset, dataset_id)
     if not dataset:
@@ -45,13 +45,13 @@ async def get_dataset(dataset_id: int, user: User = Depends(auth_handler.get_cur
     
     return dataset
 
-@dataset_router.get("/datasets/user/", response_model=List[Dataset])
+@dataset_router.get("/user/")
 async def get_user_datasets(user: User = Depends(auth_handler.get_current_user)):
     statement = select(Dataset).where(Dataset.owner_id == user.id)
     datasets = session.exec(statement).all()
     return datasets
 
-@dataset_router.delete("/datasets/{dataset_id}")
+@dataset_router.delete("/{dataset_id}")
 async def delete_dataset(dataset_id: int, user: User = Depends(auth_handler.get_current_user)):
     dataset = session.get(Dataset, dataset_id)
     if not dataset:
@@ -68,7 +68,7 @@ async def delete_dataset(dataset_id: int, user: User = Depends(auth_handler.get_
     session.commit()
     return {"message": "Dataset deleted successfully"}
 
-@dataset_router.get("/datasets/{dataset_id}/download")
+@dataset_router.get("/{dataset_id}/download")
 async def download_dataset(dataset_id: int, user: User = Depends(auth_handler.get_current_user)):
     dataset = session.get(Dataset, dataset_id)
     if not dataset:
@@ -82,7 +82,7 @@ async def download_dataset(dataset_id: int, user: User = Depends(auth_handler.ge
     
     return FileResponse(dataset.file_path, media_type="application/octet-stream", filename=os.path.basename(dataset.file_path))
 
-@dataset_router.get("/datasets/{dataset_id}/data")
+@dataset_router.get("/{dataset_id}/data")
 async def get_dataset_data(dataset_id: int, user: User = Depends(auth_handler.get_current_user)):
     dataset = session.exec(select(Dataset).where(Dataset.id == dataset_id)).first()
     if not dataset:
