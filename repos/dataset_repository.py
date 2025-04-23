@@ -69,6 +69,26 @@ def read_dataset(file_path: str) -> dict:
         "rows": df.to_dict(orient="records")
     }
 
+def group_dataset_by_month(original_path: str, save_dir: str = "./user_data/datasets"):
+    df = pd.read_csv(original_path, sep=';', parse_dates=['date'])
+    monthly_df = (
+        df
+        .set_index('date')
+        .resample('MS')
+        .mean()
+        .reset_index()
+    )
+
+    monthly_df['date'] = monthly_df['date'].dt.strftime('%Y-%m-%d')
+
+    original_name = Path(original_path).stem
+    new_filename = f"{original_name}_monthly.csv"
+    new_path = Path(save_dir) / new_filename
+    monthly_df.to_csv(new_path, sep=';', index=False)
+
+    return str(new_path)
+
+
 
 def main():
     print("Введите код валюты (USD): ", end="")

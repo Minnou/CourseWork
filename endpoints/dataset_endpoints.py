@@ -5,7 +5,7 @@ from datetime import datetime
 from models.dataset_models import Dataset
 from models.user_models import User
 from db.db import session
-from repos.dataset_repository import create_dataset, valutes, read_dataset
+from repos.dataset_repository import create_dataset, valutes, read_dataset, group_dataset_by_month
 from auth.auth import AuthHandler
 import os
 from typing import List
@@ -95,3 +95,23 @@ async def get_dataset_data(dataset_id: int, user: User = Depends(auth_handler.ge
         raise HTTPException(status_code=404, detail="Dataset file not found")
 
     return read_dataset(dataset.file_path)
+
+@dataset_router.post("/group-by-month/{dataset_id}")
+def group_by_month(dataset_id: int, user: User = Depends(auth_handler.get_current_user)):
+    original_dataset = session.exec(select(Dataset).where(Dataset.id == dataset_id)).first()
+    if not original_dataset:
+        raise HTTPException(status_code=404, detail="Dataset not found")
+
+    new_path = group_dataset_by_month(original_dataset.file_path)
+
+    new_dataset = Dataset(
+        name=f"{original_dataset.name}_monthly",
+        owner_id=user.id,
+        created_at=datetime.utcnow(),
+        file_path=new_path
+    )
+    session.add(new_dataset)
+    session.commit()
+    session.refresh(new_dataset)
+
+    return new_dataset

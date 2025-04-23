@@ -6,7 +6,7 @@ from pathlib import Path
 import os
 import time
 
-def predict(model_path: str, dataset_path: str, days: int) -> str:
+def predict(model_path: str, dataset_path: str, days: int, window_size: int = 30) -> str:
     df = pd.read_csv(dataset_path, sep=';', parse_dates=['date'])
     df = df.sort_values('date').reset_index(drop=True)
     df['date'] = pd.to_datetime(df['date'])
@@ -31,12 +31,20 @@ def predict(model_path: str, dataset_path: str, days: int) -> str:
         with open(model_path, "rb") as f:
             model, scaler = pickle.load(f)
 
-        df['days'] = (df['date'] - df['date'].min()).dt.days
-        last_day = df['days'].max()
-        future_days = np.arange(last_day + 1, last_day + days + 1).reshape(-1, 1)
-        future_days_scaled = scaler.transform(future_days)
+        values = df["value"].values
+        if len(values) < window_size:
+            raise ValueError(f"Not enough data for window of size {window_size}")
 
-        predictions = model.predict(future_days_scaled)
+        last_window = values[-window_size:]
+        predictions = []
+        current_window = last_window.copy()
+
+        for _ in range(days):
+            scaled_window = scaler.transform(current_window.reshape(1, -1)).flatten()
+            prediction = model.predict([scaled_window])[0]
+            predictions.append(prediction)
+            current_window = np.append(current_window[1:], prediction)
+
         result = pd.DataFrame({
             "date": df['date'].max() + pd.to_timedelta(np.arange(1, days + 1), unit='D'),
             "value": predictions

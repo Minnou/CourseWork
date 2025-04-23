@@ -13,6 +13,7 @@ from statsmodels.tsa.statespace.tools import diff
 
 def load_dataset(file_path: str) -> pd.DataFrame:
     df = pd.read_csv(file_path, index_col="date", parse_dates=True, sep=";")
+    df = df.iloc[::-1]
     df.index = pd.to_datetime(df.index)
     df = df.sort_index()
     df = df.asfreq('B')
@@ -29,17 +30,30 @@ def train_arima_with_params(file_path: str, save_path: str, order):
 
 def train_svr_with_params(file_path: str, save_path: str, kernel: str, C: float, epsilon: float):
     df = load_dataset(file_path)
-    X = (df.index - df.index.min()).days.values.reshape(-1, 1)
-    y = df["value"].values
+    values = df["value"].values
+
+    X = []
+    y = []
+
+    for i in range(len(values) - 30):
+        X.append(values[i:i + 30])
+        y.append(values[i + 30])
+
+    X = np.array(X)
+    y = np.array(y)
+
     X_train, _, y_train, _ = train_test_split(X, y, test_size=0.2, shuffle=False)
+
     scaler = StandardScaler()
     X_train_scaled = scaler.fit_transform(X_train)
+
     model = SVR(kernel=kernel, C=C, epsilon=epsilon)
     model.fit(X_train_scaled, y_train)
+
     with open(save_path, 'wb') as f:
         pickle.dump((model, scaler), f)
-    return save_path
 
+    return save_path
 
 def find_best_arima_params(file_path: str):
     train = load_dataset(file_path)
