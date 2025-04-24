@@ -11,4 +11,4 @@ RUN echo "db_path = '/database.db'" >> secret.py
 RUN python create_db.py
 RUN chmod 777 /database.db
 
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8081"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
