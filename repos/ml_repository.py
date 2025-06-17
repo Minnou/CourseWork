@@ -57,9 +57,6 @@ def train_svr_with_params(file_path: str, save_path: str, kernel: str, C: float,
 
 def find_best_arima_params(file_path: str):
     train = load_dataset(file_path)
-    train = train.asfreq('B')
-    train['value'] = train['value'].fillna(method='ffill')
-
     smodel = auto_arima(train["value"],
                         start_p=0, start_q=0, max_p=3, max_q=3,
                         seasonal=False,  

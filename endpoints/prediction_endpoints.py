@@ -53,7 +53,7 @@ async def get_user_predictions( user: User = Depends(auth_handler.get_current_us
     predictions = session.exec(select(Prediction).where(Prediction.owner_id == user.id)).all()
     return predictions
 
-@prediction_router.delete("delete/{prediction_id}")
+@prediction_router.delete("/delete/{prediction_id}")
 async def delete_prediction(prediction_id: int, user: User = Depends(auth_handler.get_current_user)):
     prediction: Prediction =  session.get(Prediction, prediction_id)
     if not prediction or prediction.owner_id != user.id:
